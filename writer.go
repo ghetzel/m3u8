@@ -255,6 +255,7 @@ func NewMediaPlaylist(winsize uint, capacity uint) (*MediaPlaylist, error) {
 	p := new(MediaPlaylist)
 	p.ver = minver
 	p.capacity = capacity
+
 	if err := p.SetWinSize(winsize); err != nil {
 		return nil, err
 	}
@@ -384,6 +385,11 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 			p.buf.WriteString("VOD\n")
 		}
 	}
+
+	if p.hasTimeOffset {
+		p.buf.WriteString(fmt.Sprintf("#EXT-X-START:TIME-OFFSET=%.1f\n", p.startTimeOffset))
+	}
+
 	p.buf.WriteString("#EXT-X-MEDIA-SEQUENCE:")
 	p.buf.WriteString(strconv.FormatUint(p.SeqNo, 10))
 	p.buf.WriteRune('\n')
@@ -630,6 +636,10 @@ func (p *MediaPlaylist) Close() {
 	p.Closed = true
 }
 
+func (p *MediaPlaylist) StartOffset() float64 {
+	return p.startTimeOffset
+}
+
 // Set encryption key appeared once in header of the playlist (pointer to MediaPlaylist.Key).
 // It useful when keys not changed during playback.
 // Set tag for the whole list.
@@ -643,6 +653,11 @@ func (p *MediaPlaylist) SetDefaultKey(method, uri, iv, keyformat, keyformatversi
 	p.Key = &Key{method, uri, iv, keyformat, keyformatversions}
 
 	return nil
+}
+
+func (p *MediaPlaylist) SetStartOffset(offset float64) {
+	p.hasTimeOffset = true
+	p.startTimeOffset = offset
 }
 
 // Set default Media Initialization Section values for playlist (pointer to MediaPlaylist.Map).
